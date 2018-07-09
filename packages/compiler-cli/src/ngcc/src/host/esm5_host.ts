@@ -8,7 +8,9 @@
 
 import * as ts from 'typescript';
 import { ClassMember, Decorator, Import, Parameter } from '../../../ngtsc/host';
-import { NgccReflectionHost } from './ngcc_host';
+import { Esm2015ReflectionHost } from './esm2015_host';
+
+const DECORATORS = 'decorators' as ts.__String;
 
 /**
  * ESM5 packages contain ECMAScript IIFE functions that act like classes. For example:
@@ -20,30 +22,64 @@ import { NgccReflectionHost } from './ngcc_host';
  *  CommonModule.decorators = [ ... ];
  * ```
  *
- * Items are decorated if they have a static property called `decorators`.
+ * * "Classes" are decorated if they have a static property called `decorators`.
+ * * Members are decorated if there is a matching key on a static property
+ *   called `propDecorators`.
+ * * Constructor parameters decorators are found on an object returned from
+ *   a static method called `ctorParameters`.
  *
  */
-export class Esm5ReflectionHost implements NgccReflectionHost {
-  constructor(protected checker: ts.TypeChecker) { }
-
-  getDecoratorsOfDeclaration(declaration: ts.Declaration): Decorator[]|null {
-    // This is different to ES2015 and TS
-    throw new Error('Not implemented');
+export class Esm5ReflectionHost extends Esm2015ReflectionHost {
+  constructor(checker: ts.TypeChecker) {
+    super(checker);
   }
 
-  getMembersOfClass(clazz: ts.Declaration): ClassMember[] {
-    throw new Error('Method not implemented.');
+  /**
+   * In ESM5 the implementation of a class is a function expression that is hidden inside an IIFE.
+   * So we need to dig around inside to get hold of the "class" symbol.
+   * @param declaration the top level declaration that represents an exported class.
+   */
+  protected getClassSymbol(declaration: ts.Declaration) {
+    if (ts.isVariableDeclaration(declaration)) {
+      const name = declaration.name;
+      const iifeBody = getIifeBody(declaration);
+      if (iifeBody) {
+        const innerClassIdentifier = getReturnIdentifier(iifeBody);
+        if (innerClassIdentifier) {
+          return this.checker.getSymbolAtLocation(innerClassIdentifier);
+        }
+      }
+    }
   }
 
-  getConstructorParameters(declaration: ts.Declaration): Parameter[] | null {
-    throw new Error('Method not implemented.');
+  /**
+   * Find the declarations of the constructor parameters of a class identified by its symbol.
+   * In ESM5 there is no "class" so the constructor that we want is actually the declaration
+   * function itself.
+   */
+  protected getConstructorParameterDeclarations(classSymbol: ts.Symbol) {
+    debugger;
+    const constructor = classSymbol.valueDeclaration as ts.FunctionDeclaration;
+    if (constructor && constructor.parameters) {
+      return Array.from(constructor.parameters);
+    }
+    return [];
   }
+}
 
-  getImportOfIdentifier(id: ts.Identifier): Import|null {
-    throw new Error('Method not implemented.');
+
+function getIifeBody(declaration: ts.VariableDeclaration) {
+  if (declaration.initializer && ts.isCallExpression(declaration.initializer)) {
+    const call = declaration.initializer;
+    if (ts.isParenthesizedExpression(call.expression) && ts.isFunctionExpression(call.expression.expression)) {
+      return call.expression.expression.body;
+    }
   }
+}
 
-  isClass(node: ts.Node): node is ts.Declaration {
-    throw new Error('Method not implemented');
+function getReturnIdentifier(body: ts.Block) {
+  const returnStatement = body.statements.find(statement => ts.isReturnStatement(statement)) as ts.ReturnStatement|undefined;
+  if (returnStatement && returnStatement.expression && ts.isIdentifier(returnStatement.expression)) {
+    return returnStatement.expression;
   }
 }

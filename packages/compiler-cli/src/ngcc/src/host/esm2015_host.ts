@@ -93,7 +93,7 @@ export class Esm2015ReflectionHost implements NgccReflectionHost {
     const parameters: Parameter[] = [];
     const classSymbol = this.getClassSymbol(clazz);
     if (classSymbol) {
-      const parameterNodes = getConstructorParameters(classSymbol);
+      const parameterNodes = this.getConstructorParameterDeclarations(classSymbol);
       const decoratorInfo = getConstructorDecorators(classSymbol);
       parameterNodes.forEach((node, index) => {
         const info = decoratorInfo[index];
@@ -177,22 +177,22 @@ export class Esm2015ReflectionHost implements NgccReflectionHost {
       }
     }
   }
-}
 
-
-/**
- * Find the declarations of the constructor parameters of a class identified by its symbol.
- */
-function getConstructorParameters(classSymbol: ts.Symbol) {
-  const constructorSymbol = classSymbol.members && classSymbol.members.get(CONSTRUCTOR);
-  if (constructorSymbol) {
-    // For some reason the constructor does not have a `valueDeclaration` ?!?
-    const constructor = constructorSymbol.declarations && constructorSymbol.declarations[0] as ts.ConstructorDeclaration;
-    if (constructor && constructor.parameters) {
-      return Array.from(constructor.parameters);
+  /**
+   * Find the declarations of the constructor parameters of a class identified by its symbol.
+   */
+  protected getConstructorParameterDeclarations(classSymbol: ts.Symbol) {
+    const constructorSymbol = classSymbol.members && classSymbol.members.get(CONSTRUCTOR);
+    if (constructorSymbol) {
+      // For some reason the constructor does not have a `valueDeclaration` ?!?
+      const constructor = constructorSymbol.declarations && constructorSymbol.declarations[0] as ts.ConstructorDeclaration;
+      if (constructor && constructor.parameters) {
+        return Array.from(constructor.parameters);
+      }
     }
+    return [];
   }
-  return [];
+
 }
 
 
