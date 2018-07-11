@@ -39,7 +39,7 @@ export class Esm5ReflectionHost extends Esm2015ReflectionHost {
    * So we need to dig around inside to get hold of the "class" symbol.
    * @param declaration the top level declaration that represents an exported class.
    */
-  protected getClassSymbol(declaration: ts.Declaration) {
+  getClassSymbol(declaration: ts.Declaration) {
     if (ts.isVariableDeclaration(declaration)) {
       const name = declaration.name;
       const iifeBody = getIifeBody(declaration);

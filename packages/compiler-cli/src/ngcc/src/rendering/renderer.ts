@@ -9,7 +9,7 @@ import * as ts from 'typescript';
 import MagicString from 'magic-string';
 import {Expression, WrappedNodeExpr, WritePropExpr} from '@angular/compiler';
 import {AnalyzedClass, AnalyzedFile} from '../analyzer';
-import { Decorator } from '../../../ngtsc/host';
+import {Decorator} from '../../../ngtsc/host';
 import {ImportManager, translateStatement} from '../../../ngtsc/transform/src/translator';
 
 /**
@@ -79,9 +79,12 @@ export abstract class Renderer {
       // includeContent: true  // TODO: do we need to include the source?
     });
 
+    // Add the source map comment
+    const contents = output.toString() + `\n//# sourceMappingURL=${mapPath}`;
+
     return {
       file,
-      source: { path: targetPath, contents: output.toString() },
+      source: { path: targetPath, contents },
       map: { path: mapPath, contents: map.toString() }
     };
   }

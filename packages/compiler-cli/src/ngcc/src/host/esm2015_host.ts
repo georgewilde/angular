@@ -170,7 +170,7 @@ export class Esm2015ReflectionHost implements NgccReflectionHost {
     return decorators;
   }
 
-  protected getClassSymbol(declaration: ts.Declaration) {
+  getClassSymbol(declaration: ts.Declaration) {
     if (ts.isClassDeclaration(declaration)) {
       if (declaration.name) {
         return this.checker.getSymbolAtLocation(declaration.name);

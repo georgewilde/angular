@@ -12,11 +12,14 @@ import {dirname, relative, resolve} from 'path';
 import {Analyzer} from '../analyzer';
 import {NgccReflectionHost} from '../host/ngcc_host';
 import {Esm2015ReflectionHost} from '../host/esm2015_host';
+import {Esm5ReflectionHost} from '../host/esm5_host';
 import {FileParser} from '../parsing/file_parser';
 import {Esm2015FileParser} from '../parsing/esm2015_parser';
+import {Esm5FileParser} from '../parsing/esm5_parser';
 import {getEntryPoints} from '../parsing/utils';
 import {FileInfo, Renderer} from '../rendering/renderer';
 import {Esm2015Renderer} from '../rendering/esm2015_renderer';
+import {Esm5Renderer} from '../rendering/esm5_renderer';
 
 /**
  * A Package is stored in a directory on disk and that directory can contain one or more package formats - e.g. fesm2015, UMD, etc.
@@ -48,9 +51,9 @@ import {Esm2015Renderer} from '../rendering/esm2015_renderer';
       const typeChecker = packageProgram.getTypeChecker();
 
       const reflectionHost = this.getHost(format, packageProgram);
-      const parser = new Esm2015FileParser(packageProgram, reflectionHost);
+      const parser = this.getFileParser(format, packageProgram, reflectionHost);
       const analyzer = new Analyzer(typeChecker, reflectionHost);
-      const renderer = new Esm2015Renderer();
+      const renderer = this.getRenderer(format, packageProgram, reflectionHost);
 
       const parsedFiles = parser.parseFile(entryPointFile);
       parsedFiles.forEach(parsedFile => {
@@ -68,6 +71,8 @@ import {Esm2015Renderer} from '../rendering/esm2015_renderer';
       case 'esm2015':
       case 'fesm2015':
         return new Esm2015ReflectionHost(program.getTypeChecker());
+      case 'fesm5':
+        return new Esm5ReflectionHost(program.getTypeChecker());
       default:
       throw new Error(`Relection host for "${format}" not yet implemented.`);
     }
@@ -78,6 +83,8 @@ import {Esm2015Renderer} from '../rendering/esm2015_renderer';
       case 'esm2015':
       case 'fesm2015':
         return new Esm2015FileParser(program, host);
+      case 'fesm5':
+        return new Esm5FileParser(program, host);
       default:
         throw new Error(`File parser for "${format}" not yet implemented.`);
     }
@@ -87,7 +94,9 @@ import {Esm2015Renderer} from '../rendering/esm2015_renderer';
     switch(format) {
       case 'esm2015':
       case 'fesm2015':
-        return new Esm2015Renderer();
+        return new Esm2015Renderer(host);
+      case 'fesm5':
+        return new Esm5Renderer(host);
       default:
         throw new Error(`Renderer for "${format}" not yet implemented.`);
     }
