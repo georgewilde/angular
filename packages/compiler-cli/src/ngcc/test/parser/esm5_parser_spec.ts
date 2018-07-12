@@ -20,7 +20,7 @@ const BASIC_FILE = {
       { type: Directive, args: [{ selector: '[a]' }] }
     ];
     return A;
-  })();
+  }());
 
   var B = (function() {
     function B() {}
@@ -28,7 +28,7 @@ const BASIC_FILE = {
       { type: Directive, args: [{ selector: '[b]' }] }
     ];
     return B;
-  })();
+  }());
 
   function x() {}
 

@@ -35,7 +35,7 @@ const SOME_DIRECTIVE_FILE = {
         "input2": [{ type: Input },],
       };
       return SomeDirective;
-    })();
+    }());
   `,
 };
 
@@ -45,7 +45,7 @@ const SIMPLE_CLASS_FILE = {
     var SimpleClass = (function() {
       function SimpleClass() {}
       return SimpleClass;
-    })();
+    }());
   `,
 };
 
@@ -72,7 +72,7 @@ const INVALID_DECORATORS_FILE = {
         { type: NotArrayLiteralDecorator, args: [{ selector: '[ignored]' },] },
       ];
       return NotArrayLiteral;
-    })();
+    }());
 
     var NotObjectLiteralDecorator = {};
     var NotObjectLiteral = (function() {
@@ -83,7 +83,7 @@ const INVALID_DECORATORS_FILE = {
         { type: NotObjectLiteralDecorator },
       ];
       return NotObjectLiteral;
-    })();
+    }());
 
     var NoTypePropertyDecorator1 = {};
     var NoTypePropertyDecorator2 = {};
@@ -95,7 +95,7 @@ const INVALID_DECORATORS_FILE = {
         { type: NoTypePropertyDecorator2 },
       ];
       return NoTypeProperty;
-    })();
+    }());
 
     var NotIdentifierDecorator = {};
     var NotIdentifier = (function() {
@@ -106,7 +106,7 @@ const INVALID_DECORATORS_FILE = {
         { type: NotIdentifierDecorator },
       ];
       return NotIdentifier;
-    })();
+    }());
   `,
 };
 
@@ -121,7 +121,7 @@ const INVALID_DECORATOR_ARGS_FILE = {
         { type: NoArgsPropertyDecorator },
       ];
       return NoArgsProperty;
-    })();
+    }());
 
     var NoPropertyAssignmentDecorator = {};
     var args = [{ selector: '[ignored]' },];
@@ -132,7 +132,7 @@ const INVALID_DECORATOR_ARGS_FILE = {
         { type: NoPropertyAssignmentDecorator, args },
       ];
       return NoPropertyAssignment;
-    })();
+    }());
 
     var NotArrayLiteralDecorator = {};
     var NotArrayLiteral = (function() {
@@ -142,7 +142,7 @@ const INVALID_DECORATOR_ARGS_FILE = {
         { type: NotArrayLiteralDecorator, args: () => [{ selector: '[ignored]' },] },
       ];
       return NotArrayLiteral;
-    })();
+    }());
     `,
 };
 
@@ -157,7 +157,7 @@ const INVALID_PROP_DECORATORS_FILE = {
         "prop": [{ type: NotObjectLiteralDecorator },]
       });
       return NotObjectLiteral;
-    })();
+    }());
 
     var NotObjectLiteralPropDecorator = {};
     var NotObjectLiteralProp = (function() {
@@ -170,7 +170,7 @@ const INVALID_PROP_DECORATORS_FILE = {
         ]
       };
       return NotObjectLiteralProp;
-    })();
+    }());
 
     var NoTypePropertyDecorator1 = {};
     var NoTypePropertyDecorator2 = {};
@@ -184,7 +184,7 @@ const INVALID_PROP_DECORATORS_FILE = {
         ]
       };
       return NoTypeProperty;
-    })();
+    }());
 
     var NotIdentifierDecorator = {};
     var NotIdentifier = (function() {
@@ -197,7 +197,7 @@ const INVALID_PROP_DECORATORS_FILE = {
         ]
       };
       return NotIdentifier;
-    })();
+    }());
     `,
 };
 
@@ -212,7 +212,7 @@ const INVALID_PROP_DECORATOR_ARGS_FILE = {
         "prop": [{ type: NoArgsPropertyDecorator },]
       };
       return NoArgsProperty;
-    })();
+    }());
 
     var NoPropertyAssignmentDecorator = {};
     var args = [{ selector: '[ignored]' },];
@@ -223,7 +223,7 @@ const INVALID_PROP_DECORATOR_ARGS_FILE = {
         "prop": [{ type: NoPropertyAssignmentDecorator, args },]
       };
       return NoPropertyAssignment;
-    })();
+    }());
 
     var NotArrayLiteralDecorator = {};
     var NotArrayLiteral = (function() {
@@ -233,7 +233,7 @@ const INVALID_PROP_DECORATOR_ARGS_FILE = {
         "prop": [{ type: NotArrayLiteralDecorator, args: () => [{ selector: '[ignored]' },] },],
       };
       return NotArrayLiteral;
-    })();
+    }());
     `,
 };
 
@@ -244,7 +244,7 @@ const INVALID_CTOR_DECORATORS_FILE = {
     var NoParameters = (function() {
       function NoParameters() {}
       return NoParameters;
-    })();
+    }());
 
     var NotArrowFunctionDecorator = {};
     var NotArrowFunction = (function() {
@@ -254,7 +254,7 @@ const INVALID_CTOR_DECORATORS_FILE = {
         return { type: 'ParamType', decorators: [{ type: NotArrowFunctionDecorator },] };
       };
       return NotArrowFunction;
-    })();
+    }());
 
     var NotArrayLiteralDecorator = {};
     var NotArrayLiteral = (function() {
@@ -262,7 +262,7 @@ const INVALID_CTOR_DECORATORS_FILE = {
       }
       NotArrayLiteral.ctorParameters = () => 'StringsAreNotArrayLiterals';
       return NotArrayLiteral;
-    })();
+    }());
 
     var NotObjectLiteralDecorator = {};
     var NotObjectLiteral = (function() {
@@ -273,7 +273,7 @@ const INVALID_CTOR_DECORATORS_FILE = {
         { type: 'ParamType', decorators: [{ type: NotObjectLiteralDecorator },] },
       ];
       return NotObjectLiteral;
-    })();
+    }());
 
     var NoTypePropertyDecorator1 = {};
     var NoTypePropertyDecorator2 = {};
@@ -290,7 +290,7 @@ const INVALID_CTOR_DECORATORS_FILE = {
         },
       ];
       return NoTypeProperty;
-    })();
+    }());
 
     var NotIdentifierDecorator = {};
     var NotIdentifier = (function() {
@@ -306,7 +306,7 @@ const INVALID_CTOR_DECORATORS_FILE = {
         },
       ];
       return NotIdentifier;
-    })();
+    }());
     `,
 };
 
@@ -321,7 +321,7 @@ const INVALID_CTOR_DECORATOR_ARGS_FILE = {
         { type: 'ParamType', decorators: [{ type: NoArgsPropertyDecorator },] },
       ];
       return NoArgsProperty;
-    })();
+    }());
 
     var NoPropertyAssignmentDecorator = {};
     var args = [{ selector: '[ignored]' },];
@@ -332,7 +332,7 @@ const INVALID_CTOR_DECORATOR_ARGS_FILE = {
         { type: 'ParamType', decorators: [{ type: NoPropertyAssignmentDecorator, args },] },
       ];
       return NoPropertyAssignment;
-    })();
+    }());
 
     var NotArrayLiteralDecorator = {};
     var NotArrayLiteral = (function() {
@@ -342,7 +342,7 @@ const INVALID_CTOR_DECORATOR_ARGS_FILE = {
         { type: 'ParamType', decorators: [{ type: NotArrayLiteralDecorator, args: () => [{ selector: '[ignored]' },] },] },
       ];
       return NotArrayLiteral;
-    })();
+    }());
     `,
 };
 
@@ -373,6 +373,7 @@ describe('Esm5ReflectionHost', () => {
       const program = makeProgram(SOME_DIRECTIVE_FILE);
       const host = new Esm5ReflectionHost(program.getTypeChecker());
       const classNode = getDeclaration(program, SOME_DIRECTIVE_FILE.name, 'SomeDirective', ts.isVariableDeclaration);
+      debugger;
       const decorators = host.getDecoratorsOfDeclaration(classNode)!;
 
       expect(decorators).toBeDefined();

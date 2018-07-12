@@ -43,7 +43,7 @@ var A = (function() {
     { type: Other }
   ];
   return A;
-})();
+}());
 // Some other content
 export {A};`
       };
@@ -76,7 +76,7 @@ var A = (function() {
     { type: Other }
   ];
   return A;
-})();
+}());
 // Some other content
 export {A};`
       };
@@ -95,7 +95,7 @@ SOME DEFINITION TEXT
     { type: Other }
   ];
   return A;
-})();
+}());
 // Some other content
 export {A};`);
     });
@@ -118,7 +118,7 @@ var A = (function() {
     { type: Other }
   ];
   return A;
-})();
+}());
 // Some other content
 export {A};`
       };
@@ -138,7 +138,7 @@ var A = (function() {
     { type: Other }
   ];
   return A;
-})();
+}());
 // Some other content
 export {A};`);
     });
@@ -157,7 +157,7 @@ var A = (function() {
     { type: Directive, args: [{ selector: '[a]' }] }
   ];
   return A;
-})();
+}());
 // Some other content
 export {A};`
       };
@@ -177,7 +177,7 @@ var A = (function() {
     { type: Other },
   ];
   return A;
-})();
+}());
 // Some other content
 export {A};`);
     });
@@ -195,7 +195,7 @@ var A = (function() {
     { type: Directive, args: [{ selector: '[a]' }] }
   ];
   return A;
-})();
+}());
 // Some other content
 export {A};`
       };
@@ -212,7 +212,7 @@ import {Directive} from '@angular/core';
 var A = (function() {
   function A() {}
   return A;
-})();
+}());
 // Some other content
 export {A};`);
     });

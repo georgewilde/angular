@@ -41,7 +41,6 @@ export class Esm5ReflectionHost extends Esm2015ReflectionHost {
    */
   getClassSymbol(declaration: ts.Declaration) {
     if (ts.isVariableDeclaration(declaration)) {
-      const name = declaration.name;
       const iifeBody = getIifeBody(declaration);
       if (iifeBody) {
         const innerClassIdentifier = getReturnIdentifier(iifeBody);
@@ -58,7 +57,6 @@ export class Esm5ReflectionHost extends Esm2015ReflectionHost {
    * function itself.
    */
   protected getConstructorParameterDeclarations(classSymbol: ts.Symbol) {
-    debugger;
     const constructor = classSymbol.valueDeclaration as ts.FunctionDeclaration;
     if (constructor && constructor.parameters) {
       return Array.from(constructor.parameters);
@@ -69,9 +67,9 @@ export class Esm5ReflectionHost extends Esm2015ReflectionHost {
 
 
 function getIifeBody(declaration: ts.VariableDeclaration) {
-  if (declaration.initializer && ts.isCallExpression(declaration.initializer)) {
+  if (declaration.initializer && ts.isParenthesizedExpression(declaration.initializer)) {
     const call = declaration.initializer;
-    if (ts.isParenthesizedExpression(call.expression) && ts.isFunctionExpression(call.expression.expression)) {
+    if (ts.isCallExpression(call.expression) && ts.isFunctionExpression(call.expression.expression)) {
       return call.expression.expression.body;
     }
   }
