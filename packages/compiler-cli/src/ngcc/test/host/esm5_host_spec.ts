@@ -25,11 +25,11 @@ const SOME_DIRECTIVE_FILE = {
       SomeDirective.decorators = [
         { type: Directive, args: [{ selector: '[someDirective]' },] }
       ];
-      SomeDirective.ctorParameters = () => [
+      SomeDirective.ctorParameters = function() { return [
         { type: ViewContainerRef, },
         { type: TemplateRef, },
         { type: undefined, decorators: [{ type: Inject, args: [INJECTED_TOKEN,] },] },
-      ];
+      ]; };
       SomeDirective.propDecorators = {
         "input1": [{ type: Input },],
         "input2": [{ type: Input },],
@@ -246,21 +246,21 @@ const INVALID_CTOR_DECORATORS_FILE = {
       return NoParameters;
     }());
 
-    var NotArrowFunctionDecorator = {};
-    var NotArrowFunction = (function() {
-      function NotArrowFunction(arg1) {
+    var ArrowFunctionDecorator = {};
+    var ArrowFunction = (function() {
+      function ArrowFunction(arg1) {
       }
-      NotArrowFunction.ctorParameters = function() {
-        return { type: 'ParamType', decorators: [{ type: NotArrowFunctionDecorator },] };
-      };
-      return NotArrowFunction;
+      ArrowFunction.ctorParameters = () => [
+        { type: 'ParamType', decorators: [{ type: ArrowFunctionDecorator },] }
+      ];
+      return ArrowFunction;
     }());
 
     var NotArrayLiteralDecorator = {};
     var NotArrayLiteral = (function() {
       function NotArrayLiteral(arg1) {
       }
-      NotArrayLiteral.ctorParameters = () => 'StringsAreNotArrayLiterals';
+      NotArrayLiteral.ctorParameters = function() { return 'StringsAreNotArrayLiterals'; };
       return NotArrayLiteral;
     }());
 
@@ -268,10 +268,10 @@ const INVALID_CTOR_DECORATORS_FILE = {
     var NotObjectLiteral = (function() {
       function NotObjectLiteral(arg1, arg2) {
       }
-      NotObjectLiteral.ctorParameters = () => [
+      NotObjectLiteral.ctorParameters = function() { return [
         "This is not an object literal",
         { type: 'ParamType', decorators: [{ type: NotObjectLiteralDecorator },] },
-      ];
+      ]; };
       return NotObjectLiteral;
     }());
 
@@ -280,7 +280,7 @@ const INVALID_CTOR_DECORATORS_FILE = {
     var NoTypeProperty = (function() {
       function NoTypeProperty(arg1, arg2) {
       }
-      NoTypeProperty.ctorParameters = () => [
+      NoTypeProperty.ctorParameters = function() { return [
         {
           type: 'ParamType',
           decorators: [
@@ -288,7 +288,7 @@ const INVALID_CTOR_DECORATORS_FILE = {
             { type: NoTypePropertyDecorator2 },
           ]
         },
-      ];
+      ]; };
       return NoTypeProperty;
     }());
 
@@ -296,7 +296,7 @@ const INVALID_CTOR_DECORATORS_FILE = {
     var NotIdentifier = (function() {
       function NotIdentifier(arg1, arg2) {
       }
-      NotIdentifier.ctorParameters = () => [
+      NotIdentifier.ctorParameters = function() { return [
         {
           type: 'ParamType',
           decorators: [
@@ -304,7 +304,7 @@ const INVALID_CTOR_DECORATORS_FILE = {
             { type: NotIdentifierDecorator },
           ]
         },
-      ];
+      ]; };
       return NotIdentifier;
     }());
     `,
@@ -317,9 +317,9 @@ const INVALID_CTOR_DECORATOR_ARGS_FILE = {
     var NoArgsProperty = (function() {
       function NoArgsProperty(arg1) {
       }
-      NoArgsProperty.ctorParameters = () => [
+      NoArgsProperty.ctorParameters = function() { return [
         { type: 'ParamType', decorators: [{ type: NoArgsPropertyDecorator },] },
-      ];
+      ]; };
       return NoArgsProperty;
     }());
 
@@ -328,9 +328,9 @@ const INVALID_CTOR_DECORATOR_ARGS_FILE = {
     var NoPropertyAssignment = (function() {
       function NoPropertyAssignment(arg1) {
       }
-      NoPropertyAssignment.ctorParameters = () => [
+      NoPropertyAssignment.ctorParameters = function() { return [
         { type: 'ParamType', decorators: [{ type: NoPropertyAssignmentDecorator, args },] },
-      ];
+      ]; };
       return NoPropertyAssignment;
     }());
 
@@ -338,9 +338,9 @@ const INVALID_CTOR_DECORATOR_ARGS_FILE = {
     var NotArrayLiteral = (function() {
       function NotArrayLiteral(arg1) {
       }
-      NotArrayLiteral.ctorParameters = () => [
+      NotArrayLiteral.ctorParameters = function() { return [
         { type: 'ParamType', decorators: [{ type: NotArrayLiteralDecorator, args: () => [{ selector: '[ignored]' },] },] },
-      ];
+      ]; };
       return NotArrayLiteral;
     }());
     `,
@@ -668,7 +668,7 @@ describe('Esm5ReflectionHost', () => {
     it('should ignore `ctorParameters` if it is not an arrow function', () => {
       const program = makeProgram(INVALID_CTOR_DECORATORS_FILE);
       const host = new Esm5ReflectionHost(program.getTypeChecker());
-      const classNode = getDeclaration(program, INVALID_CTOR_DECORATORS_FILE.name, 'NotArrowFunction', ts.isVariableDeclaration);
+      const classNode = getDeclaration(program, INVALID_CTOR_DECORATORS_FILE.name, 'ArrowFunction', ts.isVariableDeclaration);
       const parameters = host.getConstructorParameters(classNode);
 
       expect(parameters!.length).toBe(1);

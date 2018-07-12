@@ -7,10 +7,8 @@
  */
 
 import * as ts from 'typescript';
-import { ClassMember, Decorator, Import, Parameter } from '../../../ngtsc/host';
-import { Esm2015ReflectionHost } from './esm2015_host';
-
-const DECORATORS = 'decorators' as ts.__String;
+import { reflectObjectLiteral } from '../../../ngtsc/metadata/src/reflector';
+import { CONSTRUCTOR_PARAMS, Esm2015ReflectionHost, getPropertyValueFromSymbol } from './esm2015_host';
 
 /**
  * ESM5 packages contain ECMAScript IIFE functions that act like classes. For example:
@@ -63,6 +61,32 @@ export class Esm5ReflectionHost extends Esm2015ReflectionHost {
     }
     return [];
   }
+
+  /**
+   * Constructors parameter decorators are declared in the body of static method of the constructor
+   * function in ES5. Note that unlike ESM2105 this is a function expression rather than an arrow function:
+   *
+   * ```
+   * SomeDirective.ctorParameters = function() { return [
+   *   { type: ViewContainerRef, },
+   *   { type: TemplateRef, },
+   *   { type: IterableDiffers, },
+   *   { type: undefined, decorators: [{ type: Inject, args: [INJECTED_TOKEN,] },] },
+   * ]; };
+   * ```
+   */
+  protected getConstructorDecorators(classSymbol: ts.Symbol) {
+    if (classSymbol.exports && classSymbol.exports.has(CONSTRUCTOR_PARAMS)) {
+      const paramDecoratorsProperty = getPropertyValueFromSymbol(classSymbol.exports.get(CONSTRUCTOR_PARAMS)!);
+      if (paramDecoratorsProperty && ts.isFunctionExpression(paramDecoratorsProperty)) {
+        const returnStatement = getReturnStatement(paramDecoratorsProperty.body);
+        if (returnStatement && returnStatement.expression && ts.isArrayLiteralExpression(returnStatement.expression)) {
+          return returnStatement.expression.elements.map(element => ts.isObjectLiteralExpression(element) ? reflectObjectLiteral(element) : null);
+        }
+      }
+    }
+    return [];
+  }
 }
 
 
@@ -76,8 +100,12 @@ function getIifeBody(declaration: ts.VariableDeclaration) {
 }
 
 function getReturnIdentifier(body: ts.Block) {
-  const returnStatement = body.statements.find(statement => ts.isReturnStatement(statement)) as ts.ReturnStatement|undefined;
+  const returnStatement = getReturnStatement(body);
   if (returnStatement && returnStatement.expression && ts.isIdentifier(returnStatement.expression)) {
     return returnStatement.expression;
   }
+}
+
+function getReturnStatement(body: ts.Block) {
+  return body.statements.find(statement => ts.isReturnStatement(statement)) as ts.ReturnStatement|undefined;
 }

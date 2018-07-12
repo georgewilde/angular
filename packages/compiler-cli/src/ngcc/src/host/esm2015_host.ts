@@ -11,10 +11,10 @@ import { ClassMember, ClassMemberKind, Decorator, Import, Parameter } from '../.
 import { getImportOfSymbol, reflectObjectLiteral } from '../../../ngtsc/metadata/src/reflector';
 import { NgccReflectionHost } from './ngcc_host';
 
-const DECORATORS = 'decorators' as ts.__String;
-const PROP_DECORATORS = 'propDecorators' as ts.__String;
-const CONSTRUCTOR = '__constructor' as ts.__String;
-const CONSTRUCTOR_PARAMS = 'ctorParameters' as ts.__String;
+export const DECORATORS = 'decorators' as ts.__String;
+export const PROP_DECORATORS = 'propDecorators' as ts.__String;
+export const CONSTRUCTOR = '__constructor' as ts.__String;
+export const CONSTRUCTOR_PARAMS = 'ctorParameters' as ts.__String;
 
 /**
  * Esm2015 packages contain ECMAScript 2015 classes, etc.
@@ -94,7 +94,7 @@ export class Esm2015ReflectionHost implements NgccReflectionHost {
     const classSymbol = this.getClassSymbol(clazz);
     if (classSymbol) {
       const parameterNodes = this.getConstructorParameterDeclarations(classSymbol);
-      const decoratorInfo = getConstructorDecorators(classSymbol);
+      const decoratorInfo = this.getConstructorDecorators(classSymbol);
       parameterNodes.forEach((node, index) => {
         const info = decoratorInfo[index];
         const decorators = info && info.has('decorators') && this.getDecorators(info.get('decorators')!) || null;
@@ -193,31 +193,29 @@ export class Esm2015ReflectionHost implements NgccReflectionHost {
     return [];
   }
 
-}
-
-
-/**
- * Constructors parameter decorators are declared in the body of static method of the class in ES2015:
- *
- * ```
- * SomeDirective.ctorParameters = () => [
- *   { type: ViewContainerRef, },
- *   { type: TemplateRef, },
- *   { type: IterableDiffers, },
- *   { type: undefined, decorators: [{ type: Inject, args: [INJECTED_TOKEN,] },] },
- * ];
- * ```
- */
-function getConstructorDecorators(classSymbol: ts.Symbol) {
-  if (classSymbol.exports && classSymbol.exports.has(CONSTRUCTOR_PARAMS)) {
-    const paramDecoratorsProperty = getPropertyValueFromSymbol(classSymbol.exports.get(CONSTRUCTOR_PARAMS)!);
-    if (paramDecoratorsProperty && ts.isArrowFunction(paramDecoratorsProperty)) {
-      if (ts.isArrayLiteralExpression(paramDecoratorsProperty.body)) {
-        return paramDecoratorsProperty.body.elements.map(element => ts.isObjectLiteralExpression(element) ? reflectObjectLiteral(element) : null);
+  /**
+   * Constructors parameter decorators are declared in the body of static method of the class in ES2015:
+   *
+   * ```
+   * SomeDirective.ctorParameters = () => [
+   *   { type: ViewContainerRef, },
+   *   { type: TemplateRef, },
+   *   { type: IterableDiffers, },
+   *   { type: undefined, decorators: [{ type: Inject, args: [INJECTED_TOKEN,] },] },
+   * ];
+   * ```
+   */
+  protected getConstructorDecorators(classSymbol: ts.Symbol) {
+    if (classSymbol.exports && classSymbol.exports.has(CONSTRUCTOR_PARAMS)) {
+      const paramDecoratorsProperty = getPropertyValueFromSymbol(classSymbol.exports.get(CONSTRUCTOR_PARAMS)!);
+      if (paramDecoratorsProperty && ts.isArrowFunction(paramDecoratorsProperty)) {
+        if (ts.isArrayLiteralExpression(paramDecoratorsProperty.body)) {
+          return paramDecoratorsProperty.body.elements.map(element => ts.isObjectLiteralExpression(element) ? reflectObjectLiteral(element) : null);
+        }
       }
     }
+    return [];
   }
-  return [];
 }
 
 /**
@@ -239,7 +237,7 @@ function getDecoratorArgs(node: ts.ObjectLiteralExpression) {
  * Helper method to extract the value of a property given the property's "symbol",
  * which is actually the symbol of the identifier of the property.
  */
-function getPropertyValueFromSymbol(propSymbol: ts.Symbol) {
+export function getPropertyValueFromSymbol(propSymbol: ts.Symbol) {
   const propIdentifier = propSymbol.valueDeclaration;
   if (propIdentifier && propIdentifier.parent) {
     return (propIdentifier.parent as ts.AssignmentExpression<ts.EqualsToken>).right;
