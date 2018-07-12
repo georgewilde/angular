@@ -57,7 +57,7 @@ export abstract class Renderer {
    * @param targetPath The absolute path where the rendered file will be written.
    */
   renderFile(file: AnalyzedFile, targetPath: string): RenderResult {
-    const importManager = new ImportManager(false);
+    const importManager = new ImportManager(false, 'ɵngcc');
 
     const output = new MagicString(file.sourceFile.text);
     const decoratorsToRemove = new Map<ts.Node, ts.Node[]>();
