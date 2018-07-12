@@ -73,7 +73,7 @@ describe('Renderer', () => {
       const analyzedFiles = analyze(PROGRAM);
       renderer.renderFile(analyzedFiles[0], 'some/output/path.js');
       expect(renderer.addImports.calls.first().args[0].toString()).toEqual(CONVERTED_CONTENTS);
-      expect(renderer.addImports.calls.first().args[1]).toEqual([{name: '@angular/core', as: 'ɵ0' }]);
+      expect(renderer.addImports.calls.first().args[1]).toEqual([{name: '@angular/core', as: 'ɵngcc0' }]);
     });
 
     it('should call addDefinitions with the source code, the analyzed class and the renderered definitions.', () => {
@@ -83,7 +83,7 @@ describe('Renderer', () => {
       expect(renderer.addDefinitions.calls.first().args[0].toString()).toEqual(CONVERTED_CONTENTS);
       expect(renderer.addDefinitions.calls.first().args[1]).toBe(analyzedFile.analyzedClasses[0]);
       expect(renderer.addDefinitions.calls.first().args[2])
-        .toEqual(`A.ngDirectiveDef = ɵ0.ɵdefineDirective({ type: A, selectors: [["", "a", ""]], factory: function A_Factory() { return new A(); } });`);
+        .toEqual(`A.ngDirectiveDef = ɵngcc0.ɵdefineDirective({ type: A, selectors: [["", "a", ""]], factory: function A_Factory() { return new A(); } });`);
     });
 
     it('should call removeDecorators with the source code, a map of class decorators that have been analyzed', () => {
