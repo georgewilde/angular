@@ -61,7 +61,9 @@ import {Esm5Renderer} from '../rendering/esm5_renderer';
         const targetPath = resolve(targetNodeModules, relative(sourceNodeModules, analyzedFile.sourceFile.fileName));
         const {source, map} = renderer.renderFile(analyzedFile, targetPath);
         this.writeFile(source);
-        this.writeFile(map);
+        if (map) {
+          this.writeFile(map);
+        }
       });
     });
   }

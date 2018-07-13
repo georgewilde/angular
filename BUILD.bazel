@@ -18,6 +18,7 @@ node_modules_filegroup(
     name = "node_modules",
     packages = [
         "bytebuffer",
+        "convert-source-map",
         "hammerjs",
         "jasmine",
         "magic-string",
@@ -25,6 +26,7 @@ node_modules_filegroup(
         "protobufjs",
         "protractor",
         "reflect-metadata",
+        "source-map",
         "source-map-support",
         "tsickle",
         "tslib",

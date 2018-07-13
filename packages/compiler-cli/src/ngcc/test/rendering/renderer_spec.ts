@@ -6,7 +6,9 @@
  * found in the LICENSE file at https://angular.io/license
  */
 import * as ts from 'typescript';
+import * as fs from 'fs';
 import MagicString from 'magic-string';
+import {fromObject, generateMapFileComment} from 'convert-source-map';
 import {makeProgram} from '../helpers/utils';
 import {AnalyzedClass, Analyzer} from '../../src/analyzer';
 import {Esm2015ReflectionHost} from '../../src/host/esm2015_host';
@@ -15,13 +17,13 @@ import {Renderer} from '../../src/rendering/renderer';
 
 class TestRenderer extends Renderer {
   addImports(output: MagicString, imports: { name: string, as: string }[]) {
-    output.append('\nADD IMPORTS');
+    output.prepend('\n// ADD IMPORTS\n');
   }
   addDefinitions(output: MagicString, analyzedClass: AnalyzedClass, definitions: string) {
-    output.append('\nADD DEFINITIONS');
+    output.prepend('\n// ADD DEFINITIONS\n');
   }
   removeDecorators(output: MagicString, decoratorsToRemove: Map<ts.Node, ts.Node[]>) {
-    output.append('\nREMOVE DECORATORS');
+    output.prepend('\n// REMOVE DECORATORS\n');
   }
 }
 
@@ -44,43 +46,63 @@ function analyze(file: {name: string, contents: string}) {
 }
 
 describe('Renderer', () => {
-  const PROGRAM = {
-    name: 'some/file.js',
-    contents: `
-      import {Directive} from '@angular/core';
-      export class A {}
-      A.decorators = [
-        { type: Directive, args: [{ selector: '[a]' }] }
-      ];
-    `
+  const INPUT_PROGRAM = {
+    name: '/file.js',
+    contents: `import { Directive } from '@angular/core';\nexport class A {\n    foo(x) {\n        return x;\n    }\n}\nA.decorators = [\n    { type: Directive, args: [{ selector: '[a]' }] }\n];\n`
   };
-
-  const CONVERTED_CONTENTS = PROGRAM.contents + `\nADD DEFINITIONS\nADD IMPORTS\nREMOVE DECORATORS`;
+  const INPUT_PROGRAM_MAP = fromObject({
+    "version": 3,
+    "file": "/file.js",
+    "sourceRoot": "",
+    "sources": ["/file.ts"],
+    "names": [],
+    "mappings": "AAAA,OAAO,EAAE,SAAS,EAAE,MAAM,eAAe,CAAC;AAC1C,MAAM;IACF,GAAG,CAAC,CAAS;QACT,OAAO,CAAC,CAAC;IACb,CAAC;;AACM,YAAU,GAAG;IAChB,EAAE,IAAI,EAAE,SAAS,EAAE,IAAI,EAAE,CAAC,EAAE,QAAQ,EAAE,KAAK,EAAE,CAAC,EAAE;CACnD,CAAC",
+    "sourcesContent": ["import { Directive } from '@angular/core';\nexport class A {\n    foo(x: string): string {\n        return x;\n    }\n    static decorators = [\n        { type: Directive, args: [{ selector: '[a]' }] }\n    ];\n}"]
+  });
+  const RENDERED_CONTENTS = `\n// REMOVE DECORATORS\n\n// ADD IMPORTS\n\n// ADD DEFINITIONS\n` + INPUT_PROGRAM.contents;
+  const OUTPUT_PROGRAM_MAP = fromObject({
+    "version":3,
+    "file":"output_file.js.map",
+    "sources":["/file.js"],
+    "sourcesContent":["import { Directive } from '@angular/core';\nexport class A {\n    foo(x) {\n        return x;\n    }\n}\nA.decorators = [\n    { type: Directive, args: [{ selector: '[a]' }] }\n];"],
+    "names":[],
+    "mappings":"AAAA;;;;;;"
+  });
+  const MERGED_OUTPUT_PROGRAM_MAP = fromObject({
+    "version":3,
+    "sources":["/file.ts","/file.js"],
+    "names":[],
+    "mappings":"AAAA",
+    "sourcesContent":[
+      "import { Directive } from '@angular/core';\nexport class A {\n    foo(x: string): string {\n        return x;\n    }\n    static decorators = [\n        { type: Directive, args: [{ selector: '[a]' }] }\n    ];\n}",
+      "import { Directive } from '@angular/core';\nexport class A {\n    foo(x) {\n        return x;\n    }\n}\nA.decorators = [\n    { type: Directive, args: [{ selector: '[a]' }] }\n];"
+    ]
+  });
 
   describe('renderFile()', () => {
-    it('should return a `RenderResult` that contains the modified.', () => {
+    it('should render the modified contents; and a new map file, if the original provided no map file.', () => {
       const renderer = createTestRenderer();
-      const analyzedFiles = analyze(PROGRAM);
-      const result = renderer.renderFile(analyzedFiles[0], 'some/output/path.js');
-      expect(result.source.path).toEqual('some/output/path.js');
-      expect(result.source.contents).toEqual(CONVERTED_CONTENTS + `\n//# sourceMappingURL=some/output/path.js.map`);
-      expect(result.map.path).toEqual('some/output/path.js.map');
-      expect(result.map.contents).toEqual('{"version":3,"file":"path.js.map","sources":["../..//some/file.js"],"sourcesContent":[null],"names":[],"mappings":"AAAA;;;;;;"}');
+      const analyzedFiles = analyze(INPUT_PROGRAM);
+      const result = renderer.renderFile(analyzedFiles[0], 'output_file.js');
+      expect(result.source.path).toEqual('output_file.js');
+      expect(result.source.contents).toEqual(RENDERED_CONTENTS + '\n' + generateMapFileComment('output_file.js.map'));
+      expect(result.map!.path).toEqual('output_file.js.map');
+      expect(result.map!.contents).toEqual(OUTPUT_PROGRAM_MAP.toJSON());
     });
 
     it('should call addImports with the source code and info about the core Angular library.', () => {
       const renderer = createTestRenderer();
-      const analyzedFiles = analyze(PROGRAM);
-      renderer.renderFile(analyzedFiles[0], 'some/output/path.js');
-      expect(renderer.addImports.calls.first().args[0].toString()).toEqual(CONVERTED_CONTENTS);
+      const analyzedFiles = analyze(INPUT_PROGRAM);
+      renderer.renderFile(analyzedFiles[0], 'output_file.js');
+      expect(renderer.addImports.calls.first().args[0].toString()).toEqual(RENDERED_CONTENTS);
       expect(renderer.addImports.calls.first().args[1]).toEqual([{name: '@angular/core', as: 'ɵngcc0' }]);
     });
 
     it('should call addDefinitions with the source code, the analyzed class and the renderered definitions.', () => {
       const renderer = createTestRenderer();
-      const analyzedFile = analyze(PROGRAM)[0];
-      renderer.renderFile(analyzedFile, 'some/output/path.js');
-      expect(renderer.addDefinitions.calls.first().args[0].toString()).toEqual(CONVERTED_CONTENTS);
+      const analyzedFile = analyze(INPUT_PROGRAM)[0];
+      renderer.renderFile(analyzedFile, 'output_file.js');
+      expect(renderer.addDefinitions.calls.first().args[0].toString()).toEqual(RENDERED_CONTENTS);
       expect(renderer.addDefinitions.calls.first().args[1]).toBe(analyzedFile.analyzedClasses[0]);
       expect(renderer.addDefinitions.calls.first().args[2])
         .toEqual(`A.ngDirectiveDef = ɵngcc0.ɵdefineDirective({ type: A, selectors: [["", "a", ""]], factory: function A_Factory() { return new A(); } });`);
@@ -88,22 +110,41 @@ describe('Renderer', () => {
 
     it('should call removeDecorators with the source code, a map of class decorators that have been analyzed', () => {
       const renderer = createTestRenderer();
-      const analyzedFile = analyze(PROGRAM)[0];
-      renderer.renderFile(analyzedFile, 'some/output/path.js');
-      expect(renderer.removeDecorators.calls.first().args[0].toString()).toEqual(CONVERTED_CONTENTS);
+      const analyzedFile = analyze(INPUT_PROGRAM)[0];
+      renderer.renderFile(analyzedFile, 'output_file.js');
+      expect(renderer.removeDecorators.calls.first().args[0].toString()).toEqual(RENDERED_CONTENTS);
 
       // Each map key is the TS node of the decorator container
       // Each map value is an array of TS nodes that are the decorators to remove
       const map = renderer.removeDecorators.calls.first().args[1] as Map<ts.Node, ts.Node[]>;
       const keys = Array.from(map.keys());
       expect(keys.length).toEqual(1);
-      expect(keys[0].getText()).toEqual(`[
-        { type: Directive, args: [{ selector: '[a]' }] }
-      ]`);
+      expect(keys[0].getText()).toEqual(`[\n    { type: Directive, args: [{ selector: '[a]' }] }\n]`);
       const values = Array.from(map.values());
       expect(values.length).toEqual(1);
       expect(values[0].length).toEqual(1);
       expect(values[0][0].getText()).toEqual(`{ type: Directive, args: [{ selector: '[a]' }] }`);
+    });
+
+    it('should merge any inline source map from the original file and write the output as an inline source map', () => {
+      const renderer = createTestRenderer();
+      const analyzedFiles = analyze({ ...INPUT_PROGRAM, contents: INPUT_PROGRAM.contents + '\n' + INPUT_PROGRAM_MAP.toComment() });
+      const result = renderer.renderFile(analyzedFiles[0], 'output_file.js');
+      expect(result.source.path).toEqual('output_file.js');
+      expect(result.source.contents).toEqual(RENDERED_CONTENTS + '\n' + MERGED_OUTPUT_PROGRAM_MAP.toComment());
+      expect(result.map).toBe(null);
+    });
+
+    fit('should merge any external source map from the original file and write the output to an external source map', () => {
+      // Mock out reading the map file from disk
+      const readFileSyncSpy = spyOn(fs, 'readFileSync').and.returnValue(INPUT_PROGRAM_MAP.toJSON());
+      const renderer = createTestRenderer();
+      const analyzedFiles = analyze({ ...INPUT_PROGRAM, contents: INPUT_PROGRAM.contents + '\n//# sourceMappingURL=file.js.map' });
+      const result = renderer.renderFile(analyzedFiles[0], '/output_file.js');
+      expect(result.source.path).toEqual('/output_file.js');
+      expect(result.source.contents).toEqual(RENDERED_CONTENTS + '\n' + generateMapFileComment('/output_file.js.map'));
+      expect(result.map!.path).toEqual('/output_file.js.map');
+      expect(result.map!.contents).toEqual(MERGED_OUTPUT_PROGRAM_MAP.toJSON());
     });
   });
 });
