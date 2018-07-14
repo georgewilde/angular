@@ -135,7 +135,7 @@ describe('Renderer', () => {
       expect(result.map).toBe(null);
     });
 
-    fit('should merge any external source map from the original file and write the output to an external source map', () => {
+    it('should merge any external source map from the original file and write the output to an external source map', () => {
       // Mock out reading the map file from disk
       const readFileSyncSpy = spyOn(fs, 'readFileSync').and.returnValue(INPUT_PROGRAM_MAP.toJSON());
       const renderer = createTestRenderer();
