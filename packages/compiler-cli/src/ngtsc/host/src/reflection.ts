@@ -53,8 +53,7 @@ export enum ClassMemberKind {
  */
 export interface ClassMember {
   /**
-   * TypeScript reference to the class member itself,
-   * or null if not present or applicagle (e.g. when source is JS).
+   * TypeScript reference to the class member itself, or null if it is not applicable.
    */
   node: ts.Node|null;
 
@@ -134,7 +133,7 @@ export interface ClassMember {
    * },
    * ```
    */
-  declaration: ts.Declaration;
+  declaration: ts.Declaration|null;
 
   /**
    * Whether the member is static or not.

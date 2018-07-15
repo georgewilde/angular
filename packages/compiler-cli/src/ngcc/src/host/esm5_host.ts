@@ -7,6 +7,7 @@
  */
 
 import * as ts from 'typescript';
+import { ClassMember } from '../../../ngtsc/host/src/reflection';
 import { reflectObjectLiteral } from '../../../ngtsc/metadata/src/reflector';
 import { CONSTRUCTOR_PARAMS, Esm2015ReflectionHost, getPropertyValueFromSymbol } from './esm2015_host';
 
@@ -30,6 +31,35 @@ import { CONSTRUCTOR_PARAMS, Esm2015ReflectionHost, getPropertyValueFromSymbol }
 export class Esm5ReflectionHost extends Esm2015ReflectionHost {
   constructor(checker: ts.TypeChecker) {
     super(checker);
+  }
+
+  /**
+   * Examine a declaration which should be of a class, and return metadata about the members of the
+   * class.
+   *
+   * @param declaration a TypeScript `ts.Declaration` node representing the class over which to
+   * reflect. If the source is in ES6 format, this will be a `ts.ClassDeclaration` node. If the
+   * source is in ES5 format, this might be a `ts.VariableDeclaration` as classes in ES5 are
+   * represented as the result of an IIFE execution.
+   *
+   * @returns an array of `ClassMember` metadata representing the members of the class.
+   *
+   * @throws if `declaration` does not resolve to a class declaration.
+   */
+  // getMembersOfClass(declaration: ts.Declaration): ClassMember[] {
+  //   const members: ClassMember[] = [];
+  //   const symbol = this.getClassSymbol(declaration);
+  //   if (!symbol) {
+  //     throw new Error(`Attempted to get members of a non-class: "${declaration.getText()}"`);
+  //   }
+  //   const decoratedMembers = this.getMemberDecorators(symbol);
+  // }
+
+  /**
+   * Check whether the given declaration node actually represents a class.
+   */
+  isClass(node: ts.Declaration): boolean {
+    return !!this.getClassSymbol(node);
   }
 
   /**

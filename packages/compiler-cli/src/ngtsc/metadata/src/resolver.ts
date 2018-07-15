@@ -452,7 +452,7 @@ class StaticInterpreter {
             value = this.visitExpression(member.value, context);
           } else if (member.declaration !== null) {
             value = new NodeReference(member.declaration);
-          } else {
+          } else if (member.node !== null) {
             value = new NodeReference(member.node);
           }
         }

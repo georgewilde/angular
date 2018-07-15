@@ -21,8 +21,13 @@ const SOME_DIRECTIVE_FILE = {
     const TemplateRef = {};
 
     class SomeDirective {
-      constructor(_viewContainer, _template, injected) {}
+      constructor(_viewContainer, _template, injected) {
+        this.instanceProperty = 'instance';
+      }
+      instanceMethod() {}
+      static staticMethod() {}
     }
+    SomeDirective.staticProperty = 'static';
     SomeDirective.decorators = [
       { type: Directive, args: [{ selector: '[someDirective]' },] }
     ];
@@ -41,7 +46,10 @@ const SOME_DIRECTIVE_FILE = {
 const SIMPLE_CLASS_FILE = {
   name: '/simple_class.js',
   contents: `
-    class SimpleClass {}
+    class EmptyClass {}
+    class NoDecoratorConstructorClass {
+      constructor(foo) {}
+    }
   `,
 };
 
@@ -312,6 +320,31 @@ const IMPORTS_FILES = [
   },
 ];
 
+const EXPORTS_FILES = [
+  {
+    name: '/a.js',
+    contents: `
+      export const a = 'a';
+    `,
+  },
+  {
+    name: '/b.js',
+    contents: `
+      import {Directive} from '@angular/core';
+      import {a} from './a';
+      import {a as foo} from './a';
+      export {Directive} from '@angular/core';
+      export {a} from './a';
+      export const b = a;
+      export const c = foo;
+      export const d = b;
+      export const e = 'e';
+      export const DirectiveX = Directive;
+      export class SomeClass {}
+    `,
+  },
+];
+
 describe('Esm2015ReflectionHost', () => {
 
   describe('getDecoratorsOfDeclaration()', () => {
@@ -343,7 +376,7 @@ describe('Esm2015ReflectionHost', () => {
     it('should return null if there are no decorators', () => {
       const program = makeProgram(SIMPLE_CLASS_FILE);
       const host = new Esm2015ReflectionHost(program.getTypeChecker());
-      const classNode = getDeclaration(program, SIMPLE_CLASS_FILE.name, 'SimpleClass', ts.isClassDeclaration);
+      const classNode = getDeclaration(program, SIMPLE_CLASS_FILE.name, 'EmptyClass', ts.isClassDeclaration);
       const decorators = host.getDecoratorsOfDeclaration(classNode);
       expect(decorators).toBe(null);
     });
@@ -439,44 +472,87 @@ describe('Esm2015ReflectionHost', () => {
   });
 
   describe('getMembersOfClass()', () => {
-    it('should find decorated members on a class', () => {
+    it('should find decorated properties on a class', () => {
       const program = makeProgram(SOME_DIRECTIVE_FILE);
       const host = new Esm2015ReflectionHost(program.getTypeChecker());
       const classNode = getDeclaration(program, SOME_DIRECTIVE_FILE.name, 'SomeDirective', ts.isClassDeclaration);
       const members = host.getMembersOfClass(classNode);
 
-      expect(members).toBeDefined();
-      expect(members.length).toEqual(2);
-      expect(members.map(member => member.name)).toEqual(['input1', 'input2']);
-      expect(members.map(member => member.kind)).toEqual([ClassMemberKind.Property, ClassMemberKind.Property]);
-      expect(members.map(member => member.isStatic)).toEqual([false, false]);
+      const input1 = members.find(member => member.name === 'input1')!;
+      expect(input1.kind).toEqual(ClassMemberKind.Property);
+      expect(input1.isStatic).toEqual(false);
+      expect(input1.decorators!.map(d => d.name)).toEqual(['Input']);
+
+      const input2 = members.find(member => member.name === 'input2')!;
+      expect(input2.kind).toEqual(ClassMemberKind.Property);
+      expect(input2.isStatic).toEqual(false);
+      expect(input1.decorators!.map(d => d.name)).toEqual(['Input']);
     });
 
-    it('should return an empty array if the symbol is not a class', () => {
+    it('should find non decorated properties on a class', () => {
+      const program = makeProgram(SOME_DIRECTIVE_FILE);
+      const host = new Esm2015ReflectionHost(program.getTypeChecker());
+      const classNode = getDeclaration(program, SOME_DIRECTIVE_FILE.name, 'SomeDirective', ts.isClassDeclaration);
+      const members = host.getMembersOfClass(classNode);
+
+      const instanceProperty = members.find(member => member.name === 'instanceProperty')!;
+      expect(instanceProperty.kind).toEqual(ClassMemberKind.Property);
+      expect(instanceProperty.isStatic).toEqual(false);
+      expect(ts.isBinaryExpression(instanceProperty.declaration!)).toEqual(true);
+      expect(instanceProperty.value!.getText()).toEqual(`'instance'`);
+    });
+
+    it('should find static methods on a class', () => {
+      const program = makeProgram(SOME_DIRECTIVE_FILE);
+      const host = new Esm2015ReflectionHost(program.getTypeChecker());
+      const classNode = getDeclaration(program, SOME_DIRECTIVE_FILE.name, 'SomeDirective', ts.isClassDeclaration);
+      debugger;
+      const members = host.getMembersOfClass(classNode);
+
+      const staticMethod = members.find(member => member.name === 'staticMethod')!;
+      expect(staticMethod.kind).toEqual(ClassMemberKind.Method);
+      expect(staticMethod.isStatic).toEqual(true);
+      expect(ts.isMethodDeclaration(staticMethod.declaration!)).toEqual(true);
+    });
+
+    it('should find static properties on a class', () => {
+      const program = makeProgram(SOME_DIRECTIVE_FILE);
+      const host = new Esm2015ReflectionHost(program.getTypeChecker());
+      const classNode = getDeclaration(program, SOME_DIRECTIVE_FILE.name, 'SomeDirective', ts.isClassDeclaration);
+      const members = host.getMembersOfClass(classNode);
+
+      const staticProperty = members.find(member => member.name === 'staticProperty')!;
+      expect(staticProperty.kind).toEqual(ClassMemberKind.Property);
+      expect(staticProperty.isStatic).toEqual(true);
+      expect(ts.isPropertyAccessExpression(staticProperty.declaration!)).toEqual(true);
+      expect(staticProperty.value!.getText()).toEqual(`'static'`);
+    });
+
+    it('should throw if the symbol is not a class', () => {
       const program = makeProgram(FOO_FUNCTION_FILE);
       const host = new Esm2015ReflectionHost(program.getTypeChecker());
       const functionNode = getDeclaration(program, FOO_FUNCTION_FILE.name, 'foo', ts.isFunctionDeclaration);
-      const members = host.getMembersOfClass(functionNode);
-
-      expect(members).toEqual([]);
+      expect(() => {
+        host.getMembersOfClass(functionNode);
+      }).toThrowError(`Attempted to get members of a non-class: "function foo() {}"`)
     });
 
     it('should return an empty array if there are no prop decorators', () => {
       const program = makeProgram(SIMPLE_CLASS_FILE);
       const host = new Esm2015ReflectionHost(program.getTypeChecker());
-      const classNode = getDeclaration(program, SIMPLE_CLASS_FILE.name, 'SimpleClass', ts.isClassDeclaration);
+      const classNode = getDeclaration(program, SIMPLE_CLASS_FILE.name, 'EmptyClass', ts.isClassDeclaration);
       const members = host.getMembersOfClass(classNode);
 
       expect(members).toEqual([]);
     });
 
-    it('should ignore `propDecorators` if it is not an object literal', () => {
+    it('should not process decorated properties in `propDecorators` if it is not an object literal', () => {
       const program = makeProgram(INVALID_PROP_DECORATORS_FILE);
       const host = new Esm2015ReflectionHost(program.getTypeChecker());
       const classNode = getDeclaration(program, INVALID_PROP_DECORATORS_FILE.name, 'NotObjectLiteral', ts.isClassDeclaration);
       const members = host.getMembersOfClass(classNode);
 
-      expect(members).toEqual([]);
+      expect(members.map(member => member.name)).not.toContain('prop');
     });
 
     it('should ignore prop decorator elements that are not object literals', () => {
@@ -484,7 +560,8 @@ describe('Esm2015ReflectionHost', () => {
       const host = new Esm2015ReflectionHost(program.getTypeChecker());
       const classNode = getDeclaration(program, INVALID_PROP_DECORATORS_FILE.name, 'NotObjectLiteralProp', ts.isClassDeclaration);
       const members = host.getMembersOfClass(classNode);
-      const decorators = members[0].decorators!;
+      const prop = members.find(m => m.name === 'prop')!;
+      const decorators = prop.decorators!;
 
       expect(decorators.length).toBe(1);
       expect(decorators[0]).toEqual(jasmine.objectContaining({name: 'NotObjectLiteralPropDecorator'}));
@@ -495,7 +572,8 @@ describe('Esm2015ReflectionHost', () => {
       const host = new Esm2015ReflectionHost(program.getTypeChecker());
       const classNode = getDeclaration(program, INVALID_PROP_DECORATORS_FILE.name, 'NoTypeProperty', ts.isClassDeclaration);
       const members = host.getMembersOfClass(classNode);
-      const decorators = members[0].decorators!;
+      const prop = members.find(m => m.name === 'prop')!;
+      const decorators = prop.decorators!;
 
       expect(decorators.length).toBe(1);
       expect(decorators[0]).toEqual(jasmine.objectContaining({name: 'NoTypePropertyDecorator2'}));
@@ -506,29 +584,31 @@ describe('Esm2015ReflectionHost', () => {
       const host = new Esm2015ReflectionHost(program.getTypeChecker());
       const classNode = getDeclaration(program, INVALID_PROP_DECORATORS_FILE.name, 'NotIdentifier', ts.isClassDeclaration);
       const members = host.getMembersOfClass(classNode);
-      const decorators = members[0].decorators!;
+      const prop = members.find(m => m.name === 'prop')!;
+      const decorators = prop.decorators!;
 
       expect(decorators.length).toBe(1);
       expect(decorators[0]).toEqual(jasmine.objectContaining({name: 'NotIdentifierDecorator'}));
     });
 
     it('should use `getImportOfIdentifier()` to retrieve import info', () => {
-      const mockImportInfos = [{}, {}] as Import[];
-      const spy = spyOn(Esm2015ReflectionHost.prototype, 'getImportOfIdentifier').and.returnValues(...mockImportInfos);
+      let callCount = 0;
+      const spy = spyOn(Esm2015ReflectionHost.prototype, 'getImportOfIdentifier').and.callFake(() => {
+        callCount++;
+        return { name: `name${callCount}`, from: `from${callCount}` };
+      });
 
       const program = makeProgram(SOME_DIRECTIVE_FILE);
       const host = new Esm2015ReflectionHost(program.getTypeChecker());
       const classNode = getDeclaration(program, SOME_DIRECTIVE_FILE.name, 'SomeDirective', ts.isClassDeclaration);
       const members = host.getMembersOfClass(classNode);
 
-      expect(members.length).toBe(2);
-      members.forEach((member, i) => {
-        expect(member.decorators!.length).toBe(1);
-        expect(member.decorators![0].import).toBe(mockImportInfos[i]);
-      });
+      expect(spy).toHaveBeenCalled();
+      spy.calls.allArgs().forEach(arg => expect(arg[0].getText()).toEqual('Input'));
 
-      expect(spy).toHaveBeenCalledTimes(2);
-      spy.calls.allArgs().forEach(args => expect(args[0].text).toBe('Input'));
+      const index = members.findIndex(member => member.name === 'input1');
+      expect(members[index].decorators!.length).toBe(1);
+      expect(members[index].decorators![0].import).toEqual({ name: 'name1', from: 'from1' });
     });
 
     describe('(returned prop decorators `args`)', () => {
@@ -537,7 +617,8 @@ describe('Esm2015ReflectionHost', () => {
         const host = new Esm2015ReflectionHost(program.getTypeChecker());
         const classNode = getDeclaration(program, INVALID_PROP_DECORATOR_ARGS_FILE.name, 'NoArgsProperty', ts.isClassDeclaration);
         const members = host.getMembersOfClass(classNode);
-        const decorators = members[0].decorators!;
+        const prop = members.find(m => m.name === 'prop')!;
+        const decorators = prop.decorators!;
 
         expect(decorators.length).toBe(1);
         expect(decorators[0].name).toBe('NoArgsPropertyDecorator');
@@ -549,7 +630,8 @@ describe('Esm2015ReflectionHost', () => {
         const host = new Esm2015ReflectionHost(program.getTypeChecker());
         const classNode = getDeclaration(program, INVALID_PROP_DECORATOR_ARGS_FILE.name, 'NoPropertyAssignment', ts.isClassDeclaration);
         const members = host.getMembersOfClass(classNode);
-        const decorators = members[0].decorators!;
+        const prop = members.find(m => m.name === 'prop')!;
+        const decorators = prop.decorators!;
 
         expect(decorators.length).toBe(1);
         expect(decorators[0].name).toBe('NoPropertyAssignmentDecorator');
@@ -561,7 +643,8 @@ describe('Esm2015ReflectionHost', () => {
         const host = new Esm2015ReflectionHost(program.getTypeChecker());
         const classNode = getDeclaration(program, INVALID_PROP_DECORATOR_ARGS_FILE.name, 'NotArrayLiteral', ts.isClassDeclaration);
         const members = host.getMembersOfClass(classNode);
-        const decorators = members[0].decorators!;
+        const prop = members.find(m => m.name === 'prop')!;
+        const decorators = prop.decorators!;
 
         expect(decorators.length).toBe(1);
         expect(decorators[0].name).toBe('NotArrayLiteralDecorator');
@@ -583,25 +666,36 @@ describe('Esm2015ReflectionHost', () => {
           .toEqual(['ViewContainerRef', 'TemplateRef', 'undefined']);
     });
 
-    it('should return an empty array if the symbol is not a class', () => {
+    it('should throw if the symbol is not a class', () => {
       const program = makeProgram(FOO_FUNCTION_FILE);
       const host = new Esm2015ReflectionHost(program.getTypeChecker());
       const functionNode = getDeclaration(program, FOO_FUNCTION_FILE.name, 'foo', ts.isFunctionDeclaration);
-      const parameters = host.getConstructorParameters(functionNode);
-
-      expect(parameters).toEqual([]);
+      expect(() => {
+        host.getConstructorParameters(functionNode);
+      }).toThrowError('Attempted to get constructor parameters of a non-class: "function foo() {}"');
     });
 
-    it('should return an empty array if there are no decorators', () => {
+    it('should return `null` if there is no constructor', () => {
       const program = makeProgram(SIMPLE_CLASS_FILE);
       const host = new Esm2015ReflectionHost(program.getTypeChecker());
-      const classNode = getDeclaration(program, SIMPLE_CLASS_FILE.name, 'SimpleClass', ts.isClassDeclaration);
+      const classNode = getDeclaration(program, SIMPLE_CLASS_FILE.name, 'EmptyClass', ts.isClassDeclaration);
       const parameters = host.getConstructorParameters(classNode);
-
-      expect(parameters).toEqual([]);
+      expect(parameters).toBe(null);
     });
 
-    it('should return an empty array if there is no constructor parameters', () => {
+    it('should return an array even if there are no decorators', () => {
+      const program = makeProgram(SIMPLE_CLASS_FILE);
+      const host = new Esm2015ReflectionHost(program.getTypeChecker());
+      const classNode = getDeclaration(program, SIMPLE_CLASS_FILE.name, 'NoDecoratorConstructorClass', ts.isClassDeclaration);
+      const parameters = host.getConstructorParameters(classNode);
+
+      expect(parameters).toEqual(jasmine.any(Array));
+      expect(parameters!.length).toEqual(1);
+      expect(parameters![0].name).toEqual('foo');
+      expect(parameters![0].decorators).toBe(null);
+    });
+
+    it('should return an empty array if there are no constructor parameters', () => {
       const program = makeProgram(INVALID_CTOR_DECORATORS_FILE);
       const host = new Esm2015ReflectionHost(program.getTypeChecker());
       const classNode = getDeclaration(program, INVALID_CTOR_DECORATORS_FILE.name, 'NoParameters', ts.isClassDeclaration);
@@ -760,6 +854,90 @@ describe('Esm2015ReflectionHost', () => {
       const importOfIdent = host.getImportOfIdentifier(variableNode.initializer as ts.Identifier);
 
       expect(importOfIdent).toBeNull();
+    });
+  });
+
+  describe('getDeclarationOfIdentifier', () => {
+    it('should return the declaration of a locally defined identifier', () => {
+      const program = makeProgram(SOME_DIRECTIVE_FILE);
+      const host = new Esm2015ReflectionHost(program.getTypeChecker());
+      const classNode = getDeclaration(program, SOME_DIRECTIVE_FILE.name, 'SomeDirective', ts.isClassDeclaration);
+      const ctrDecorators = host.getConstructorParameters(classNode)!;
+      const identifierOfViewContainerRef = ctrDecorators[0].type! as ts.Identifier;
+
+      const expectedDeclarationNode = getDeclaration(program, SOME_DIRECTIVE_FILE.name, 'ViewContainerRef', ts.isVariableDeclaration);
+      const actualDeclaration = host.getDeclarationOfIdentifier(identifierOfViewContainerRef);
+      expect(actualDeclaration).not.toBe(null);
+      expect(actualDeclaration!.node).toBe(expectedDeclarationNode);
+      expect(actualDeclaration!.viaModule).toBe(null);
+    });
+
+    it('should return the declaration of an externally defined identifier', () => {
+      const program = makeProgram(SOME_DIRECTIVE_FILE);
+      const host = new Esm2015ReflectionHost(program.getTypeChecker());
+      const classNode = getDeclaration(program, SOME_DIRECTIVE_FILE.name, 'SomeDirective', ts.isClassDeclaration);
+      const classDecorators = host.getDecoratorsOfDeclaration(classNode)!;
+      const identifierOfDirective =
+        ((classDecorators[0].node as ts.ObjectLiteralExpression)
+        .properties[0] as ts.PropertyAssignment)
+        .initializer as ts.Identifier;
+
+      const expectedDeclarationNode = getDeclaration(program, 'node_modules/@angular/core/index.ts', 'Directive', ts.isVariableDeclaration);
+      const actualDeclaration = host.getDeclarationOfIdentifier(identifierOfDirective);
+      expect(actualDeclaration).not.toBe(null);
+      expect(actualDeclaration!.node).toBe(expectedDeclarationNode);
+      expect(actualDeclaration!.viaModule).toBe('@angular/core');
+    });
+  });
+
+  describe('getExportsOfModule()', () => {
+    it('should return a map of all the exports from a given module', () => {
+      const program = makeProgram(...EXPORTS_FILES);
+      const host = new Esm2015ReflectionHost(program.getTypeChecker());
+      const file = program.getSourceFile(EXPORTS_FILES[1].name)!;
+      const exportDeclarations = host.getExportsOfModule(file);
+      expect(exportDeclarations).not.toBe(null);
+      expect(Array.from(exportDeclarations!.keys())).toEqual([
+        'Directive',
+        'a',
+        'b',
+        'c',
+        'd',
+        'e',
+        'DirectiveX',
+        'SomeClass',
+      ]);
+
+      const values = Array.from(exportDeclarations!.values())
+        .map(declaration => [declaration.node.getText(), declaration.viaModule]);
+      expect(values).toEqual([
+        // TODO clarify what is expected here...
+        // [`Directive = callableClassDecorator()`, '@angular/core'],
+        [`Directive = callableClassDecorator()`, null],
+        [`a = 'a'`, null],
+        [`b = a`, null],
+        [`c = foo`, null],
+        [`d = b`, null],
+        [`e = 'e'`, null],
+        [`DirectiveX = Directive`, null],
+        ['export class SomeClass {}', null],
+      ]);
+    });
+  });
+
+  describe('isClass()', () => {
+    it('should return true if a given node is a TS class declaration', () => {
+      const program = makeProgram(SIMPLE_CLASS_FILE);
+      const host = new Esm2015ReflectionHost(program.getTypeChecker());
+      const node = getDeclaration(program, SIMPLE_CLASS_FILE.name, 'EmptyClass', ts.isClassDeclaration);
+      expect(host.isClass(node)).toBe(true);
+    });
+
+    it('should return false if a given node is a TS function declaration', () => {
+      const program = makeProgram(FOO_FUNCTION_FILE);
+      const host = new Esm2015ReflectionHost(program.getTypeChecker());
+      const node = getDeclaration(program, FOO_FUNCTION_FILE.name, 'foo', ts.isFunctionDeclaration);
+      expect(host.isClass(node)).toBe(false);
     });
   });
 });
